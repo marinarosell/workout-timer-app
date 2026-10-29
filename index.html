@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Interval Timer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Interval">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#2547e8">
+<style>
+:root{
+  --bg:#f3f4f7;--ink:#14161c;--muted:#5d6370;--panel:#ffffff;--line:#d9dce3;
+  --work:#2547e8;--work-ink:#ffffff;--rest:#bfe3d0;--rest-ink:#0f3a28;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#0f1218;--ink:#f1f3f8;--muted:#9aa1b0;--panel:#1a1e27;--line:#2c3240;--work:#5b7bff;--work-ink:#0b0f1f;--rest:#1f4a39;--rest-ink:#d6f3e4}
+}
+:root[data-theme="dark"]{--bg:#0f1218;--ink:#f1f3f8;--muted:#9aa1b0;--panel:#1a1e27;--line:#2c3240;--work:#5b7bff;--work-ink:#0b0f1f;--rest:#1f4a39;--rest-ink:#d6f3e4}
+:root{--prep:#f2c94c;--prep-ink:#2b2100}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--prep:#7a661c;--prep-ink:#fff3c4}}
+:root[data-theme="dark"]{--prep:#7a661c;--prep-ink:#fff3c4}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Avenir Next","Helvetica Neue",system-ui,sans-serif;transition:background .25s,color .25s;-webkit-tap-highlight-color:transparent}
+body.work{background:var(--work);color:var(--work-ink)}
+body.rest{background:var(--rest);color:var(--rest-ink)}
+body.prepare{background:var(--prep);color:var(--prep-ink)}
+main{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:20px 20px 24px}
+h1{font-size:1.1rem;font-weight:600;margin:4px 0 20px}
+.settings{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 14px 14px 18px;color:var(--ink)}
+.row label{font-size:1rem;font-weight:600}
+.step{display:flex;align-items:center;gap:6px}
+.step button{width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:1.5rem;font-weight:500;cursor:pointer}
+.step button:active{transform:scale(.95)}
+.val{min-width:76px;text-align:center;font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums}
+.total{color:var(--muted);font-size:.9rem;margin:4px 2px 0}
+.stage{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px}
+.phase{font-size:clamp(2rem,10vw,3rem);font-weight:800;letter-spacing:-.02em}
+.clock{font-size:clamp(6rem,34vw,10rem);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+.setcount{font-size:1.3rem;font-weight:600;opacity:.85}
+.bar{width:100%;height:8px;border-radius:4px;background:currentColor;opacity:.2;margin-top:22px;position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0;background:currentColor;transform-origin:left;transform:scaleX(0);opacity:5}
+.controls{display:flex;gap:10px;margin-top:24px}
+.btn{flex:1;height:60px;border-radius:16px;border:2px solid currentColor;background:transparent;color:inherit;font:inherit;font-size:1.1rem;font-weight:700;cursor:pointer}
+.btn.primary{background:var(--work);color:var(--work-ink);border-color:var(--work)}
+body.work .btn.primary,body.rest .btn.primary,body.prepare .btn.primary{background:currentColor}
+body.work .btn.primary span{color:var(--work)}
+body.rest .btn.primary span{color:var(--rest)}
+body.prepare .btn.primary span{color:var(--prep)}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible,.step button:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+.running .stage{display:flex}
+.running .settings,.running .total,.running h1{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Interval timer</h1>
+
+  <section class="settings" id="settings">
+    <div class="row"><label>Prepare</label><div class="step"><button data-k="prepare" data-d="-5" aria-label="Less prepare time">−</button><span class="val" id="v-prepare">0:10</span><button data-k="prepare" data-d="5" aria-label="More prepare time">+</button></div></div>
+    <div class="row"><label for="w">Work</label><div class="step"><button data-k="work" data-d="-5" aria-label="Less work time">−</button><span class="val" id="v-work">0:40</span><button data-k="work" data-d="5" aria-label="More work time">+</button></div></div>
+    <div class="row"><label for="r">Rest</label><div class="step"><button data-k="rest" data-d="-5" aria-label="Less rest time">−</button><span class="val" id="v-rest">0:20</span><button data-k="rest" data-d="5" aria-label="More rest time">+</button></div></div>
+    <div class="row"><label for="s">Sets</label><div class="step"><button data-k="sets" data-d="-1" aria-label="Fewer sets">−</button><span class="val" id="v-sets">5</span><button data-k="sets" data-d="1" aria-label="More sets">+</button></div></div>
+  </section>
+  <p class="total" id="total"></p>
+
+  <section class="stage" id="stage" aria-live="off">
+    <div class="phase" id="phase">Work</div>
+    <div class="clock" id="clock">0:00</div>
+    <div class="setcount" id="setcount">Set 1 of 5</div>
+    <div class="bar"><i id="fill"></i></div>
+  </section>
+
+  <div style="flex:0 0 auto;margin-top:auto">
+    <div class="controls">
+      <button class="btn primary" id="main"><span>Start</span></button>
+      <button class="btn" id="reset" style="display:none">Reset</button>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+  var cfg={prepare:10,work:40,rest:20,sets:5};
+  try{var saved=JSON.parse(localStorage.getItem("interval-timer-cfg")||"null");
+    if(saved&&saved.work>0&&saved.sets>0&&saved.rest>=0)cfg=saved;}catch(e){}
+  if(typeof cfg.prepare!=="number")cfg.prepare=10;
+  var limits={prepare:[0,300],work:[5,3600],rest:[0,3600],sets:[1,99]};
+
+  var $=function(id){return document.getElementById(id)};
+  var fmt=function(s){var m=Math.floor(s/60),r=s%60;return m+":"+(r<10?"0":"")+r};
+
+  var phase="idle",setNo=1,running=false,endAt=0,remMs=0,phaseLen=0,lastBeep=-1,tickId=null,wakeLock=null;
+
+  function renderSettings(){
+    $("v-prepare").textContent=fmt(cfg.prepare);
+    $("v-work").textContent=fmt(cfg.work);
+    $("v-rest").textContent=fmt(cfg.rest);
+    $("v-sets").textContent=cfg.sets;
+    var total=cfg.prepare+cfg.sets*cfg.work+(cfg.sets-1)*cfg.rest;
+    $("total").textContent="Total time: "+fmt(total);
+    try{localStorage.setItem("interval-timer-cfg",JSON.stringify(cfg));}catch(e){}
+  }
+
+  document.querySelectorAll(".step button").forEach(function(b){
+    b.addEventListener("click",function(){
+      var k=b.dataset.k,d=parseInt(b.dataset.d,10),l=limits[k];
+      cfg[k]=Math.min(l[1],Math.max(l[0],cfg[k]+d));
+      renderSettings();
+    });
+  });
+
+  /* Sound + vibration */
+  var ac=null;
+  function beep(freq,dur){
+    try{
+      ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+      if(ac.state==="suspended")ac.resume();
+      var o=ac.createOscillator(),g=ac.createGain();
+      o.frequency.value=freq;o.connect(g);g.connect(ac.destination);
+      g.gain.setValueAtTime(.0001,ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(.4,ac.currentTime+.01);
+      g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+dur);
+      o.start();o.stop(ac.currentTime+dur+.02);
+    }catch(e){}
+  }
+  function buzz(p){try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}}
+
+  async function lockScreen(){
+    try{if("wakeLock" in navigator)wakeLock=await navigator.wakeLock.request("screen");}catch(e){}
+  }
+  function unlockScreen(){try{if(wakeLock){wakeLock.release();wakeLock=null;}}catch(e){}}
+  document.addEventListener("visibilitychange",function(){if(running&&document.visibilityState==="visible")lockScreen();});
+
+  function startPhase(p){
+    phase=p;
+    phaseLen=(p==="work"?cfg.work:p==="rest"?cfg.rest:cfg.prepare);
+    remMs=phaseLen*1000;
+    endAt=Date.now()+remMs;
+    lastBeep=-1;
+    document.body.className="running "+p;
+    $("phase").textContent=p==="work"?"Work":p==="rest"?"Rest":"Get ready";
+    $("setcount").textContent="Set "+setNo+" of "+cfg.sets;
+    draw(phaseLen);
+  }
+
+  function advance(){
+    if(phase==="prepare"){beep(880,.35);buzz(200);startPhase("work");return;}
+    if(phase==="work"){
+      if(setNo>=cfg.sets){return finish();}
+      if(cfg.rest>0){beep(660,.35);buzz(200);startPhase("rest");}
+      else{setNo++;beep(880,.35);buzz(200);startPhase("work");}
+    }else{
+      setNo++;beep(880,.5);buzz([200,80,200]);startPhase("work");
+    }
+  }
+
+  function finish(){
+    clearInterval(tickId);running=false;phase="done";unlockScreen();
+    beep(880,.25);setTimeout(function(){beep(880,.25)},300);setTimeout(function(){beep(1175,.6)},600);
+    buzz([300,100,300,100,500]);
+    document.body.className="running";
+    $("phase").textContent="Done";
+    $("clock").textContent="✓";
+    $("setcount").textContent=cfg.sets+" sets finished";
+    $("fill").style.transform="scaleX(1)";
+    setMain("New workout");
+    $("reset").style.display="none";
+  }
+
+  function draw(secs){
+    $("clock").textContent=fmt(secs);
+    var f=phaseLen>0?1-(secs/phaseLen):1;
+    $("fill").style.transform="scaleX("+f+")";
+  }
+
+  function tick(){
+    if(!running)return;
+    var left=Math.ceil((endAt-Date.now())/1000);
+    if(left<=0){advance();return;}
+    draw(left);
+    if(left<=3&&left!==lastBeep){lastBeep=left;beep(520,.12);buzz(60);}
+  }
+
+  function setMain(label){$("main").firstElementChild.textContent=label;}
+
+  function begin(){
+    setNo=1;running=true;
+    $("reset").style.display="block";
+    $("fill").style.opacity=1;
+    beep(880,.3);buzz(200);
+    startPhase(cfg.prepare>0?"prepare":"work");
+    setMain("Pause");
+    lockScreen();
+    clearInterval(tickId);tickId=setInterval(tick,200);
+  }
+
+  $("main").addEventListener("click",function(){
+    if(phase==="idle"||phase==="done"){
+      if(phase==="done"){resetAll();return;}
+      begin();
+    }else if(running){
+      running=false;remMs=Math.max(0,endAt-Date.now());setMain("Resume");
+    }else{
+      endAt=Date.now()+remMs;running=true;setMain("Pause");lockScreen();
+    }
+  });
+
+  function resetAll(){
+    clearInterval(tickId);running=false;phase="idle";setNo=1;unlockScreen();
+    document.body.className="";
+    $("reset").style.display="none";
+    setMain("Start");
+  }
+  $("reset").addEventListener("click",resetAll);
+
+  renderSettings();
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
+</body>
+</html>
