@@ -45,12 +45,13 @@ h1{font-size:1.1rem;font-weight:600;margin:4px 0 20px}
 .phase{font-size:clamp(2rem,10vw,3rem);font-weight:800;letter-spacing:-.02em}
 .clock{font-size:clamp(6rem,34vw,10rem);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
 .setcount{font-size:1.3rem;font-weight:600;opacity:.85}
-.bar{width:100%;height:8px;border-radius:4px;background:currentColor;opacity:.2;margin-top:22px;position:relative;overflow:hidden}
-.bar i{position:absolute;inset:0;background:currentColor;transform-origin:left;transform:scaleX(0);opacity:5}
+.bar{width:100%;height:8px;border-radius:4px;margin-top:22px;position:relative;overflow:hidden}
+.bar::before{content:"";position:absolute;inset:0;background:currentColor;opacity:.2}
+.bar i{position:absolute;inset:0;background:currentColor;transform-origin:left;transform:scaleX(0)}
 .controls{display:flex;gap:10px;margin-top:24px}
 .btn{flex:1;height:60px;border-radius:16px;border:2px solid currentColor;background:transparent;color:inherit;font:inherit;font-size:1.1rem;font-weight:700;cursor:pointer}
 .btn.primary{background:var(--work);color:var(--work-ink);border-color:var(--work)}
-body.work .btn.primary,body.rest .btn.primary,body.prepare .btn.primary{background:currentColor}
+body.work .btn.primary,body.rest .btn.primary,body.prepare .btn.primary{color:inherit;background:currentColor;border-color:currentColor}
 body.work .btn.primary span{color:var(--work)}
 body.rest .btn.primary span{color:var(--rest)}
 body.prepare .btn.primary span{color:var(--prep)}
